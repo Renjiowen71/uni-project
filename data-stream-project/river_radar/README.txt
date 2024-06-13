@@ -1,0 +1,1 @@
+you can download the data https://datasets.cms.waikato.ac.nz/taiao/river_radar_2015_2018/
