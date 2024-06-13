@@ -1,0 +1,1 @@
+EvaluatePrequentialRegression -l (rules.functions.FadingTargetMean -f 0.5 -e 0.5) -s (clustering.SimpleCSVStream -f (/home/re126/Desktop/data-stream-project/result/test 2 hour/preprocessTarget2Hour.csv) -c) -f 2000 -d /home/re126/Desktop/dump.csv -o /home/re126/Desktop/pred -O /home/re126/Desktop/result.moa

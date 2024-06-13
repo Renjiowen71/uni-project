@@ -1,0 +1,1 @@
+EvaluatePrequentialRegression -l (rules.functions.Perceptron -l 0.1 -m 0.004) -s (clustering.SimpleCSVStream -f (/home/re126/Desktop/data-stream-project/result/double the data 6 hours/preprocessNormalizedDuplicated.csv) -c) -f 2000 -d /home/re126/Desktop/dump.csv -o /home/re126/Desktop/pred -O /home/re126/Desktop/result.moa
