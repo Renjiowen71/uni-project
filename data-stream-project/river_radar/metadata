@@ -1,0 +1,17 @@
+Gridded rain radar, and river sensor information taken from August 2015- Jan 2018, taken at 15 minutes samples
+
+**Description**
+
+This data is available in CSV files; Column 0 contains the timestamp of the recording,  Columns 1-420 contain the gridded radar reflectance, taken at 3 altitudes. Columns 421-422 contains the river stage recording, and Columns 423-424 contains the rain gauge recording taken in 2 locations
+Each grid is 5kmx5km centered at 37.0428 S, 175.6819 E
+
+Column 0 contains the timestamp of the recording in UTC time
+Columns 1-140 contains the gridded radar reflectance taken at 10x14 grid, taken at sea level
+Columns 141-280 contains the gridded radar reflectance taken at 10x14 grid, taken at 2000m above sea level
+Columns 281-420 contains the gridded radar reflectance taken at 10x14 grid, taken at 4000m above sea level
+Columns 421-422 contains the river stage levels 
+Columns 421-422 contains the rain gauage recording 
+
+**License**
+
+This data is made available under CC-BY-4.0
