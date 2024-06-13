@@ -1,0 +1,68 @@
+<project name="cartoonify" default="main" basedir=".">
+    <description>
+        the build file for cartoonify project
+    </description>
+    <!-- set global properties for this build -->
+    <property name="src" location="src"/>
+    <property name="lib" location="lib"/>
+    <property name="build" location="build"/>
+    <property name="img_examples" location="img_examples"/>
+    <property name="kernel" value="com/celanim/cartoonify/kernel.cl"/>
+    <property name="classes" value="${build}/classes"/>
+    <property name="jar"     value="${build}/jar"/>
+    <property name="main-class"  value="com.celanim.cartoonify.Cartoonify"/>
+    <property name="argument" value="-g -e 256 -c 3 img_examples/img_bucket.jpg"/>
+
+    <target name="init">
+        <!-- Create the time stamp -->
+        <tstamp/>
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="${build}"/>
+    </target>
+    <!-- Compile the java code -->
+    <target name="compile" depends="init"
+            description="compile the source">
+        <mkdir dir="${classes}"/>
+        <!-- Compile the Java code from ${src} into ${build} -->
+        <javac srcdir="${src}" destdir="${classes}">
+            <classpath>
+                <fileset dir="${lib}">
+                    <include name="**/*.jar" />
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+    <!-- Create the jar file -->
+    <target name="jar" depends="compile">
+        <mkdir dir="${jar}"/>
+        <jar destfile="${jar}/${ant.project.name}.jar" basedir="${classes}">
+            <!-- Copy the kernel file to jar file -->
+            <fileset dir="src" includes="${kernel}" />
+            <manifest>
+                <attribute name="Main-Class" value="${main-class}"/>
+            </manifest>
+            <zipgroupfileset dir="${lib}" includes="**/*.jar"/>
+        </jar>
+    </target>
+
+    <target name="run" depends="jar">
+        <!-- Run the jar file -->
+        <java jar="${jar}/${ant.project.name}.jar"
+              args="${argument}"
+              fork="true">
+        </java>
+    </target>
+
+    <target name="clean"
+            description="clean up" >
+        <!-- Delete the ${build} directory trees -->
+        <delete dir="${build}" failonerror="true"/>
+        <delete failonerror="true">
+            <fileset dir="${img_examples}" includes="*_cartoon.jpg"/>
+            <fileset dir="${img_examples}" includes="*_blurred.jpg"/>
+            <fileset dir="${img_examples}" includes="*_colours.jpg"/>
+            <fileset dir="${img_examples}" includes="*_edges.jpg"/>
+        </delete>
+    </target>
+    <target name="main" depends="clean,run"/>
+</project>

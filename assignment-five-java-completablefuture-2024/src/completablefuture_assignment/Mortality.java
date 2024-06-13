@@ -1,0 +1,255 @@
+package completablefuture_assignment;
+
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
+/**
+ * A CompletableFuture assignment template class
+ *
+ * @Author Shaoqun Wu
+ */
+public class Mortality {
+    protected static final String DIE_MSG = "Die at %d\n";
+    protected static final String WORKING_YEARS_MSG = "Working years=%d\n";
+    protected static final String RETIREMENT_YEARS_MSG = "Retirement years=%d\n";
+    protected static final String SUPER_PAYOUT_MSG = "Super payout=%.1f (median salaries)\n";
+    protected static final String LIFESTYLE_MSG = "You live on %.1f%% of median salary\n";
+    protected static Random random = new Random();
+    //use debug flag to see the threads in action
+    public static boolean debug = false;
+
+    /*
+     *  a helper method that delays the execution of the current thread
+     */
+    protected static void delay() {
+        try {
+            //delay a bit
+            Thread.sleep(random.nextInt(10) * 100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * a Supplier that provides the retirement age between 60-70 (inclusive)
+     */
+    static Supplier<Integer> RetirementAgeSupplier = () -> {
+        String currentThreadName = Thread.currentThread().getName();
+        if (debug) {
+            System.out.println("^^" + currentThreadName + "^^ Retrieving Retirement age ....");
+        }
+        delay();
+        int retirementAge = 60 + new Random().nextInt(11);
+        if (debug) {
+            System.out.println("^^" + currentThreadName + "^^ returned Retirement age: " + retirementAge);
+        }
+        return retirementAge;
+    };
+
+    /*
+     *  Calculates the death age given a gender and birth year.
+     *  @param gender ("male" or female)
+     *  @param birthYear (between 1928 and 2018)
+     *  @return a death age
+     */
+    protected static int calculateDeathAge(String gender, int birthYear) {
+        final int deathAge;
+        if ("male".equals(gender)) {
+            deathAge = 79 + (2018 - birthYear) / 20;
+        } else {
+            deathAge = 83 + (2018 - birthYear) / 30;
+        }
+        return deathAge;
+    }
+
+    /*
+     * calculate performance percentage given a strategy name
+     * @param a strategy name
+     * @return performance percentage (double)
+     */
+    protected static double performance(String strategy) {
+        return switch (strategy.toLowerCase()) {
+            case "growth" -> 1.045;
+            case "balanced" -> 1.035;
+            case "conservative" -> 1.025;
+            case "cash" -> 1.01;
+            default -> throw new RuntimeException("Unknown Super strategy: " + strategy);
+        };
+    }
+    protected static double superBalance(int workingYears, String strategy, int contribution) {
+        double balance = 0;
+        for(int i =0; i<workingYears;i++){
+            balance = balance*performance(strategy)+ (double) contribution /100;
+        }
+        return balance;
+    }
+
+    /**
+     * Displays the final output messages, given the final node of the dataflow graph.
+     *
+     * @param spendLevel calculated based on the performance, contribution and working years.
+     */
+    public static void displayResult(double spendLevel) {
+        // Get the final output of the dataflow calculation and analyze it.
+        // Median income in New Zealand is $44,011.
+        // See http://www.superannuation.asn.au/resources/retirement-standard
+        // Modest single lifestyle requires $24,506, which is about 0.56 of median income.
+        // Comfortable lifestyle requires $44,011, which is about same as median income.
+        if (spendLevel < 0.56) {
+            System.out.format("Miserable poverty...");
+        } else if (spendLevel < 1.0) {
+            System.out.format("A modest lifestyle...");
+        } else {
+            System.out.format("Comfortable!...");
+        }
+    }
+
+    /*
+     * a method to show how "join" works
+     * "join" method is blocking.
+     *  Async calls are executed sequentially by one worker (thread) one at a time.
+     */
+    static void testWithJoin(String fullname) {
+        System.out.println("JOIN method is blocking... (single thread)");
+        CompletableFuture.supplyAsync(() -> PersonInfoSupplier.getPersonInfo(fullname)).join();
+        CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getStartSuperAge).join();
+        CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getSuperStrategy).join();
+        CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getContribution).join();
+        CompletableFuture.supplyAsync(RetirementAgeSupplier).join();
+
+    }
+
+    /*
+     * a method to show to how "get" works
+     * "get" method is also blocking.
+     * Async calls are executed sequentially by one worker (thread) one at a time.
+     */
+    static void testWithGet(String fullname) {
+        System.out.println("\nGET method is blocking... (single thread)");
+        try {
+            CompletableFuture.supplyAsync(() -> PersonInfoSupplier.getPersonInfo(fullname)).get();
+            CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getStartSuperAge).get();
+            CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getSuperStrategy).get();
+            CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getContribution).get();
+            CompletableFuture.supplyAsync(RetirementAgeSupplier).get();
+
+        } catch (Exception e) {
+        }
+
+    }
+
+    /*
+     * a method to show how to make Async calls and use "join" at the end to wait for thread's returning
+     * Async calls are executed asynchronously by more than one workers (threads).
+     */
+    static void testWithoutJoinAndGet(String fullname) {
+        System.out.println("\nNon-blocking Async calls ... (multiple threads)");
+
+        CompletableFuture[] cfutures = new CompletableFuture[5];
+
+        cfutures[0] = CompletableFuture.supplyAsync(() -> PersonInfoSupplier.getPersonInfo(fullname));
+        cfutures[1] = CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getStartSuperAge);
+        cfutures[2] = CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getSuperStrategy);
+        cfutures[3] = CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getContribution);
+        cfutures[4] = CompletableFuture.supplyAsync(RetirementAgeSupplier);
+
+        CompletableFuture.allOf(cfutures).join();
+
+    }
+
+
+    /**
+     * @param fullName a person's name
+     *                 (see all the names in the "fullName" file in the project directory)
+     *                 to search for
+     */
+    public static void query(String fullName) {
+        System.out.println(fullName);
+        //write your implementation here
+        CompletableFuture<Integer> deathAgeFuture = CompletableFuture.supplyAsync(() -> PersonInfoSupplier.getPersonInfo(fullName))
+                .thenApply(personInfo -> {
+                    System.out.println("\tbirth year="+personInfo.get().birthYear);
+                    System.out.println("\tsex="+personInfo.get().gender);
+                    return personInfo;
+                })
+                .thenCompose(personInfo -> CompletableFuture.supplyAsync(() -> calculateDeathAge(personInfo.get().gender, personInfo.get().birthYear)))
+                .thenApply(deathAge -> {
+                    System.out.printf(DIE_MSG, deathAge);
+                    return deathAge;
+                });
+
+        CompletableFuture<Integer> retirementAgeFuture = CompletableFuture.supplyAsync(RetirementAgeSupplier)
+                .thenApply(retirementAge -> {
+                    System.out.println("\tstart retirement age="+retirementAge);
+                    return retirementAge;
+                });
+
+        CompletableFuture<Integer> retirementYearsFuture = deathAgeFuture
+                .thenCombine(
+                        retirementAgeFuture,
+                        (deathAge, retirementAge) -> deathAge-retirementAge
+                )
+                .thenApply(retirementYear -> {
+                    System.out.printf(RETIREMENT_YEARS_MSG, retirementYear);
+                    return retirementYear;
+                });
+
+        CompletableFuture<Integer> workingYearsFuture = retirementAgeFuture
+                .thenCombine(
+                        CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getStartSuperAge)
+                                .thenApply(superAge -> {
+                                    System.out.println("\tstart super age="+superAge);
+                                    return superAge;
+                                }),
+                        (retirementAge, superAge) -> retirementAge-superAge
+                ).thenApply(workingYears -> {
+                    System.out.printf(WORKING_YEARS_MSG, workingYears);
+                    return workingYears;
+                });
+
+        CompletableFuture<Integer> contributionFuture = CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getContribution)
+                .thenApply(c -> {
+                    System.out.println("\tcontribution%="+c);
+                    return c;
+                });
+
+        CompletableFuture<Double> superBalanceFuture = workingYearsFuture
+                .thenCombine(
+                        CompletableFuture.supplyAsync(SuperannuatationStrategySupplier::getSuperStrategy)
+                                .thenApply(superStrategy -> {
+                                    System.out.println("\tsuper strategy="+superStrategy);
+                                    return superStrategy;
+                                }),
+                        (workingYear, superStrategy) -> {
+                            int contribution = contributionFuture.join();
+                            return superBalance(workingYear, superStrategy, contribution);
+                        }
+                )
+                .thenApply(superPayout -> {
+                    System.out.printf(SUPER_PAYOUT_MSG, superPayout);
+                    return superPayout;
+                });
+
+        retirementYearsFuture
+                .thenCombine(
+                        superBalanceFuture,
+                        (retirementYear, superBalance) -> superBalance/retirementYear
+                ).thenApply(lifeStyle -> {
+                            System.out.printf(LIFESTYLE_MSG, lifeStyle);
+                            return lifeStyle;
+                        }
+                ).thenAccept(Mortality::displayResult)
+                .join();
+    }
+
+    public static void main(String[] args) {
+        String fullName = "Mia Collins";
+        /**  uncomment to experiment with "join" and "get" methods
+         testWithJoin(fullName);
+         testWithGet(fullName);
+         testWithoutJoinAndGet(fullName);
+         **/
+        query(fullName);
+    }
+}
